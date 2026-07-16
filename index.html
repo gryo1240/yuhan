@@ -111,12 +111,14 @@ nav.tabs button.on{color:var(--accent); font-weight:700;}
   <main>
     <section id="tab-spin"></section>
     <section id="tab-shindan" hidden></section>
+    <section id="tab-mine" hidden></section>
     <section id="tab-settings" hidden></section>
   </main>
 </div>
 <nav class="tabs"><div class="inner">
   <button data-tab="spin" class="on"><span class="ic">🎲</span>ルーレット</button>
   <button data-tab="shindan"><span class="ic">🔮</span>気分診断</button>
+  <button data-tab="mine"><span class="ic">📝</span>マイ料理</button>
   <button data-tab="settings"><span class="ic">⚙️</span>設定</button>
 </div></nav>
 <div id="modal"></div>
@@ -257,12 +259,17 @@ function seaOf(r){ return SEAQ[r.id] || r.sea || []; }
 const KEY="yuhan-v1";
 const $=s=>document.querySelector(s);
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function byId(id){ return BUILTIN.find(r=>r.id===id); }
 function load(){
-  try{ const raw=localStorage.getItem(KEY); if(raw){ const s=JSON.parse(raw); if(s&&s.hist) return s; } }catch(e){}
-  return { hist:[], grp:"all", tl:0 };
+  try{ const raw=localStorage.getItem(KEY); if(raw){ const s=JSON.parse(raw); if(s&&s.hist){
+    if(!Array.isArray(s.custom)) s.custom=[];
+    return s;
+  } } }catch(e){}
+  return { hist:[], grp:"all", tl:0, custom:[] };
 }
 let S=load();
+function allRecipes(){ return BUILTIN.concat(S.custom||[]); }
+function byId(id){ return allRecipes().find(r=>r.id===id); }
+function tasteOf(r){ return r.taste || TASTE[r.id] || "n"; }
 let saveFailWarned=false;
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }
@@ -286,7 +293,7 @@ const GRP = {
  tama:{label:"卵・豆腐", mains:["卵・豆腐"]}
 };
 function filtered(grp, tl){
-  let list = BUILTIN;
+  let list = allRecipes();
   const g = GRP[grp];
   if(g && g.mains) list = list.filter(r=>g.mains.includes(r.main));
   if(tl) list = list.filter(r=>r.time<=tl);
@@ -323,8 +330,8 @@ function renderSpin(){
     html+=`<div class="resultcard" style="padding:0">
       <div class="deco">🎉</div>
       <div class="rname">${esc(r.name)}</div>
-      <div class="rmeta">${esc(r.main)} / 約${r.time}分</div>
-      <div class="ringr small">材料: ${r.ing.map(i=>esc(i.n)).join("、")}</div>
+      <div class="rmeta">${esc(r.main)} / 約${r.time}分${r.id[0]==="c"?" / マイ料理":""}</div>
+      ${r.ing.length?`<div class="ringr small">材料: ${r.ing.map(i=>esc(i.n)).join("、")}</div>`:""}
     </div>`;
   } else {
     html+=`<div class="idle">候補 ${cands.length}品<br>ボタンを押すと今日の夕飯が決まります</div>`;
@@ -415,7 +422,7 @@ function renderShindan(){
         <div class="deco">✨</div>
         <div class="small">今日のあなたにおすすめ</div>
         <div class="rname">${esc(top.name)}</div>
-        <div class="rmeta">${esc(top.main)} / 約${top.time}分 / ${TASTE[top.id]==="k"?"こってり":TASTE[top.id]==="s"?"さっぱり":"バランス"}系</div>
+        <div class="rmeta">${esc(top.main)} / 約${top.time}分 / ${tasteOf(top)==="k"?"こってり":tasteOf(top)==="s"?"さっぱり":"バランス"}系</div>
         <div class="row" style="margin-top:10px; justify-content:center">
           <button class="primary" id="sDecide">✅ これにする!(作り方を見る)</button>
         </div>
@@ -445,7 +452,7 @@ function renderShindan(){
     if(!list.length){ shindanResult=[]; renderShindan(); return; }
     const scored = list.map(r=>{
       let sc = Math.random();
-      const t = TASTE[r.id]||"n";
+      const t = tasteOf(r);
       if(Q.taste){ sc += (t===Q.taste ? 3 : t==="n" ? 1.5 : 0); }
       return {r, sc};
     }).sort((a,b)=>b.sc-a.sc);
@@ -465,25 +472,125 @@ function openDetail(id){
   const m=$("#modal");
   m.innerHTML=`<div class="overlay" id="ov"><div class="sheet">
     <h3>${esc(r.name)}</h3>
-    <p class="small">${esc(r.main)} / 目安${r.time}分 / 2人分</p>
-    <div class="f-row"><div class="lbl">材料</div>
+    <p class="small">${esc(r.main)} / 目安${r.time}分${r.id[0]==="c"?" / マイ料理":" / 2人分"}</p>
+    ${r.ing.length?`<div class="f-row"><div class="lbl">材料</div>
       <ul class="ingredlist">${r.ing.map(i=>`<li>・${esc(i.n)} ${i.q}${esc(i.u)}</li>`).join("")}</ul>
-    </div>
+    </div>`:""}
     ${seaOf(r).length?`<div class="f-row"><div class="lbl">調味料(常備している前提)</div>
       <div class="toolchips">${seaOf(r).map(s=>`<span class="chip">${esc(s)}</span>`).join("")}</div></div>`:""}
-    <div class="f-row"><div class="lbl">作り方</div>
-      <ol class="steps">${stepsOf(r).map(s=>`<li>${esc(s)}</li>`).join("")}</ol></div>
+    ${stepsOf(r).length?`<div class="f-row"><div class="lbl">作り方</div>
+      <ol class="steps">${stepsOf(r).map(s=>`<li>${esc(s)}</li>`).join("")}</ol></div>`:""}
+    ${!r.ing.length&&!stepsOf(r).length?`<p class="small">材料・作り方は登録されていません(マイ料理タブから編集できます)。</p>`:""}
     <div class="row" style="margin-top:10px">
-      <button class="primary grow" id="dCopy">📋 材料リストをコピー</button>
-      <button id="dClose">閉じる</button>
+      ${r.ing.length?`<button class="primary grow" id="dCopy">📋 材料リストをコピー</button>`:""}
+      <button id="dClose" class="${r.ing.length?"":"grow"}">閉じる</button>
     </div>
   </div></div>`;
-  $("#dCopy").onclick=()=>{
-    const t=`【${r.name} の材料(2人分)】\n`+r.ing.map(i=>`・${i.n} ${i.q}${i.u}`).join("\n");
-    copyText(t,$("#dCopy"),"✅ コピーしました");
-  };
+  if(r.ing.length){
+    $("#dCopy").onclick=()=>{
+      const t=`【${r.name} の材料】\n`+r.ing.map(i=>`・${i.n} ${i.q}${i.u}`).join("\n");
+      copyText(t,$("#dCopy"),"✅ コピーしました");
+    };
+  }
   $("#dClose").onclick=()=>m.innerHTML="";
   $("#ov").onclick=e=>{ if(e.target.id==="ov") m.innerHTML=""; };
+}
+
+/* ============ マイ料理タブ ============ */
+const MAINS=["豚","鶏","ひき肉","牛","魚","麺","卵・豆腐","その他"];
+let editId=null;
+function parseIngLines(text){
+  return String(text||"").split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{
+    const m=l.match(/^(\S+)\s*(.*)$/);
+    return {n:m[1], q:"", u:m[2]||"", c:CAT.SONOTA, d:99};
+  });
+}
+function parseStepLines(text){
+  return String(text||"").split(/\r?\n/).map(l=>l.trim().replace(/^\d+[.、)]\s*/,"")).filter(Boolean);
+}
+function renderMine(){
+  const el=$("#tab-mine");
+  const editing = editId ? S.custom.find(r=>r.id===editId) : null;
+  const ingText = editing ? editing.ing.map(i=>(i.n+(i.u?" "+i.u:""))).join("\n") : "";
+  const stText = editing ? (editing.st||[]).join("\n") : "";
+  let html=`<div class="card">
+    <p class="small" style="margin-bottom:8px">よく作る料理・お店のテイクアウトなど、ルーレットに入れたいものを自由に追加できます。</p>
+    <div class="f-row" style="margin-top:0"><div class="lbl">${editing?`「${esc(editing.name)}」を編集中`:"料理名"}</div>
+      <input type="text" id="crName" value="${editing?esc(editing.name):""}" placeholder="例: うちの塩ちゃんこ鍋 / 餃子(冷凍)" style="width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px"></div>
+    <div class="row">
+      <label class="small">主役
+        <select id="crMain" style="font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;display:block">
+          ${MAINS.map(mn=>`<option value="${esc(mn)}" ${editing&&editing.main===mn?"selected":""}>${esc(mn)}</option>`).join("")}
+        </select></label>
+      <label class="small">時間(分)
+        <input type="number" id="crTime" value="${editing?editing.time:20}" min="1" max="180" style="width:80px;display:block;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px"></label>
+      <span class="small grow">味の系統
+        <span class="seg" id="crTaste" style="margin-top:4px">
+          <button data-v="k" class="${editing&&editing.taste==="k"?"on":""}">こってり</button>
+          <button data-v="s" class="${editing&&editing.taste==="s"?"on":""}">さっぱり</button>
+          <button data-v="n" class="${!editing||!editing.taste||editing.taste==="n"?"on":""}">どちらでも</button>
+        </span></span>
+    </div>
+    <div class="f-row"><div class="lbl">材料(1行に1つ「食材名 分量」・省略OK)</div>
+      <textarea id="crIng" placeholder="例:&#10;鶏もも肉 1枚&#10;白菜 1/4株" style="min-height:70px">${esc(ingText)}</textarea></div>
+    <div class="f-row"><div class="lbl">作り方(1行に1手順・省略OK)</div>
+      <textarea id="crSt" placeholder="例:&#10;材料を切って鍋に入れる&#10;煮えたらポン酢で" style="min-height:70px">${esc(stText)}</textarea></div>
+    <p class="small">主役を「その他」にした料理は、絞り込みが「おまかせ」のときにルーレットに出ます。</p>
+    <div class="row">
+      <button class="primary grow" id="crSave">${editing?"保存する":"＋ ルーレットに追加"}</button>
+      ${editing?`<button class="ghost" id="crCancel">キャンセル</button>`:""}
+    </div>
+  </div>`;
+  if(S.custom.length){
+    html+=`<h2>追加した料理(${S.custom.length}品)</h2><div class="card">`;
+    S.custom.forEach(r=>{
+      html+=`<div class="rrow">
+        <button class="nm" data-open="${r.id}">
+          <div class="t">${esc(r.name)}</div>
+          <div class="s">${esc(r.main)} / ${r.time}分 / ${r.taste==="k"?"こってり":r.taste==="s"?"さっぱり":"どちらでも"}</div>
+        </button>
+        <button class="ghost" data-editr="${r.id}">✎ 編集</button>
+        <button class="ghost" data-delr="${r.id}" style="color:var(--warn)">削除</button>
+      </div>`;
+    });
+    html+=`</div>`;
+  } else {
+    html+=`<div class="card"><p class="small">まだ追加した料理はありません。追加すると内蔵36品と一緒にルーレット・気分診断の候補になります。</p></div>`;
+  }
+  el.innerHTML=html;
+  let newTaste = editing ? (editing.taste||"n") : "n";
+  el.querySelectorAll("#crTaste button").forEach(b=>b.onclick=()=>{
+    newTaste=b.dataset.v;
+    el.querySelectorAll("#crTaste button").forEach(x=>x.classList.toggle("on",x===b));
+  });
+  $("#crSave").onclick=()=>{
+    const name=$("#crName").value.trim();
+    if(!name){ alert("料理名を入れてください。"); return; }
+    const rec={
+      id: editing?editing.id:("c"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)),
+      name,
+      main: $("#crMain").value,
+      time: Math.max(1, parseInt($("#crTime").value,10)||20),
+      taste: newTaste,
+      ing: parseIngLines($("#crIng").value),
+      st: parseStepLines($("#crSt").value),
+      sea: []
+    };
+    if(editing){ S.custom=S.custom.map(r=>r.id===rec.id?rec:r); }
+    else S.custom.push(rec);
+    editId=null; save(); renderMine();
+  };
+  if(editing) $("#crCancel").onclick=()=>{ editId=null; renderMine(); };
+  el.querySelectorAll("[data-editr]").forEach(b=>b.onclick=()=>{ editId=b.dataset.editr; renderMine(); window.scrollTo({top:0,behavior:"smooth"}); });
+  el.querySelectorAll("[data-delr]").forEach(b=>b.onclick=()=>{
+    const r=S.custom.find(x=>x.id===b.dataset.delr);
+    if(!confirm(`「${r?r.name:""}」を削除しますか?`)) return;
+    S.custom=S.custom.filter(x=>x.id!==b.dataset.delr);
+    S.hist=S.hist.filter(h=>h.id!==b.dataset.delr);
+    if(editId===b.dataset.delr) editId=null;
+    save(); renderMine();
+  });
+  el.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openDetail(b.dataset.open));
 }
 
 /* ============ 設定タブ ============ */
@@ -492,7 +599,7 @@ function renderSettings(){
   el.innerHTML=`
   <div class="card">
     <h2 style="margin-top:0">このアプリについて</h2>
-    <p class="small">「今日の夕飯どうしよう」を10秒で終わらせるアプリです。内蔵の家庭料理36品(2人分・時短中心)から、ルーレットまたは3問の気分診断で決めます。</p>
+    <p class="small">「今日の夕飯どうしよう」を10秒で終わらせるアプリです。内蔵の家庭料理36品(2人分・時短中心)+「マイ料理」タブで追加した自分の料理から、ルーレットまたは3問の気分診断で決めます。</p>
     <p class="small" style="margin-top:6px">決定履歴などのデータはこの端末の中にだけ保存されます。外部への送信はありません。</p>
     <p class="small" style="margin-top:6px">姉妹アプリ: <a href="https://gryo1240.github.io/kondate/" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">週の献立プランナー</a>(1週間分まとめて決めたい人向け)</p>
   </div>
@@ -512,6 +619,7 @@ function renderSettings(){
   $("#btnImport").onclick=()=>{
     try{
       const o=JSON.parse($("#ioArea").value); if(!o||!o.hist) throw 0;
+      if(!Array.isArray(o.custom)) o.custom=[];
       S=o; save(); render(); alert("読み込みました");
     }catch(e){ alert("読み込めませんでした。書き出した文字列をそのまま貼ってください。"); }
   };
@@ -529,11 +637,12 @@ document.querySelectorAll("nav.tabs button").forEach(b=>{
 });
 function render(){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
-  ["spin","shindan","settings"].forEach(t=>{ $("#tab-"+t).hidden=(t!==tab); });
+  ["spin","shindan","mine","settings"].forEach(t=>{ $("#tab-"+t).hidden=(t!==tab); });
   if(tab==="spin") renderSpin();
   if(tab==="shindan") renderShindan();
+  if(tab==="mine") renderMine();
   if(tab==="settings") renderSettings();
-  $("#hSub").textContent=`家庭料理36品`;
+  $("#hSub").textContent=`料理${allRecipes().length}品`;
 }
 render();
 </script>
