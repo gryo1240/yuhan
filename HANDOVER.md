@@ -14,12 +14,12 @@
 | 項目 | 内容 |
 |---|---|
 | アプリ名 | 夕飯ルーレット(今日の夕飯を10秒で) |
-| 公開URL | https://gryo1240.github.io/yuhan/ (※リポジトリ公開後に有効) |
+| 公開URL | https://gryo1240.github.io/yuhan/ |
 | 種別 | 今日の夕飯をルーレット/3問診断で決めるWebアプリ(PWA・インストール可) |
 | 料金 / 登録 | 完全無料・アカウント登録不要・広告なし |
 | 対応端末 | スマホ(Android/iPhone)・PC のモダンブラウザ |
 | データの扱い | 決定履歴などは端末内のみ(localStorage)。外部送信なし・同期機能なし |
-| リポジトリ | https://github.com/gryo1240/yuhan (予定) |
+| リポジトリ | https://github.com/gryo1240/yuhan (public・公開済み) |
 
 ### アプリの特徴(記事の訴求ポイント)
 
