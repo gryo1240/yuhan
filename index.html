@@ -44,7 +44,16 @@
 *{box-sizing:border-box; margin:0; padding:0;}
 html,body{background:var(--bg); color:var(--ink);
   font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Noto Sans JP",Meiryo,sans-serif;
-  font-size:15px; line-height:1.4; -webkit-font-smoothing:antialiased;}
+  font-size:15px; line-height:1.4; -webkit-font-smoothing:antialiased;
+  height:100%; overflow:hidden;}
+/* iframe埋め込み時、iOS Safari等でposition:fixedがiframeのスクロール位置ではなく
+   ドキュメント全体を基準に位置決めされる不具合対策(2026-07-17)。
+   html,bodyは自身をスクロールさせず、#scroll-area内側だけをスクロールさせる。
+   nav.tabsと.overlayはposition:fixedではなくbody基準のposition:absoluteにして
+   (bodyはposition:relative・スクロールしない)、iframeの見た目のビューポートに
+   確実に固定する(fixedのままでも大半は直るが、absolute化の方がより決定的) */
+body{position:relative;}
+#scroll-area{height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;}
 #app{max-width:720px; margin:0 auto; padding:0 14px 80px;}
 header.top{position:sticky; top:0; z-index:20; background:var(--bg);
   padding:6px 2px 5px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--line);}
@@ -62,7 +71,7 @@ button:disabled{opacity:.5; cursor:default;}
 textarea{font:inherit; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:7px 10px; width:100%; min-height:90px;}
 .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
 .grow{flex:1 1 auto; min-width:0;}
-nav.tabs{position:fixed; bottom:0; left:0; right:0; z-index:30; background:var(--surface); border-top:1px solid var(--line); display:flex; justify-content:center;}
+nav.tabs{position:absolute; bottom:0; left:0; right:0; z-index:30; background:var(--surface); border-top:1px solid var(--line); display:flex; justify-content:center;}
 nav.tabs .inner{display:flex; width:100%; max-width:720px;}
 nav.tabs button{flex:1; background:none; border-radius:0; padding:10px 0 12px; font-size:11.5px; color:var(--muted); display:flex; flex-direction:column; gap:2px; align-items:center;}
 nav.tabs button .ic{font-size:18px; line-height:1;}
@@ -95,7 +104,7 @@ nav.tabs button.on{color:var(--accent); font-weight:700;}
 .hrow:last-child{border-bottom:none;}
 .hrow .d{color:var(--muted); font-size:12px; white-space:nowrap;}
 /* detail sheet */
-.overlay{position:fixed; inset:0; background:rgba(40,12,18,.45); z-index:40; display:flex; align-items:flex-end; justify-content:center;}
+.overlay{position:absolute; inset:0; background:rgba(40,12,18,.45); z-index:40; display:flex; align-items:flex-end; justify-content:center;}
 .sheet{background:var(--surface); width:100%; max-width:720px; max-height:88vh; border-radius:14px 14px 0 0; padding:16px 16px 24px; overflow-y:auto;}
 .sheet h3{font-size:16px; margin-bottom:4px;}
 .ingredlist{list-style:none; padding:0; margin:0;}
@@ -106,14 +115,16 @@ nav.tabs button.on{color:var(--accent); font-weight:700;}
 @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
 </style>
 
-<div id="app">
-  <header class="top"><h1>夕飯ルーレット</h1><span class="sub" id="hSub"></span></header>
-  <main>
-    <section id="tab-spin"></section>
-    <section id="tab-shindan" hidden></section>
-    <section id="tab-mine" hidden></section>
-    <section id="tab-settings" hidden></section>
-  </main>
+<div id="scroll-area">
+  <div id="app">
+    <header class="top"><h1>夕飯ルーレット</h1><span class="sub" id="hSub"></span></header>
+    <main>
+      <section id="tab-spin"></section>
+      <section id="tab-shindan" hidden></section>
+      <section id="tab-mine" hidden></section>
+      <section id="tab-settings" hidden></section>
+    </main>
+  </div>
 </div>
 <nav class="tabs"><div class="inner">
   <button data-tab="spin" class="on"><span class="ic">🎲</span>ルーレット</button>
@@ -458,7 +469,7 @@ function renderShindan(){
     }).sort((a,b)=>b.sc-a.sc);
     shindanResult = scored.slice(0,3).map(x=>x.r.id);
     renderShindan();
-    window.scrollTo({top:0, behavior:"smooth"});
+    $("#scroll-area").scrollTo({top:0, behavior:"smooth"});
   };
   if(shindanResult && shindanResult.length){
     $("#sDecide").onclick=()=>{ pushHist(shindanResult[0]); openDetail(shindanResult[0]); };
@@ -581,7 +592,7 @@ function renderMine(){
     editId=null; save(); renderMine();
   };
   if(editing) $("#crCancel").onclick=()=>{ editId=null; renderMine(); };
-  el.querySelectorAll("[data-editr]").forEach(b=>b.onclick=()=>{ editId=b.dataset.editr; renderMine(); window.scrollTo({top:0,behavior:"smooth"}); });
+  el.querySelectorAll("[data-editr]").forEach(b=>b.onclick=()=>{ editId=b.dataset.editr; renderMine(); $("#scroll-area").scrollTo({top:0,behavior:"smooth"}); });
   el.querySelectorAll("[data-delr]").forEach(b=>b.onclick=()=>{
     const r=S.custom.find(x=>x.id===b.dataset.delr);
     if(!confirm(`「${r?r.name:""}」を削除しますか?`)) return;
