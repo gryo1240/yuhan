@@ -2,7 +2,7 @@
 
 > この文書は、別のPCの Claude(Claude Code / claude.ai)がそのまま読み込んで作業を引き継ぐための引き継ぎ書です。
 > Claude への指示例: 「このリポジトリの HANDOVER.md を読んで、記事公開の作業を進めて」
-> 同シリーズ: 献立 https://github.com/gryo1240/kondate 、やること https://github.com/gryo1240/yarukoto 、洗濯 https://github.com/gryo1240/sentaku 、そうじ https://github.com/gryo1240/souji 、固定費 https://github.com/gryo1240/koteihi 、のこりレシピ https://github.com/gryo1240/nokori 、防災リュック https://github.com/gryo1240/bousai 、ご祝儀香典 https://github.com/gryo1240/goshugi (各リポジトリにも HANDOVER.md あり)
+> 同シリーズ: 献立 https://github.com/gryo1240/kondate 、やること https://github.com/gryo1240/yarukoto 、洗濯 https://github.com/gryo1240/sentaku 、そうじ https://github.com/gryo1240/souji 、固定費 https://github.com/gryo1240/koteihi 、のこりレシピ https://github.com/gryo1240/nokori 、防災リュック https://github.com/gryo1240/bousai 、ご祝儀香典 https://github.com/gryo1240/goshugi 、いろどりパレット https://github.com/gryo1240/irodori (各リポジトリにも HANDOVER.md あり)
 
 ## ゴール
 
