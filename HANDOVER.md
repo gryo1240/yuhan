@@ -38,7 +38,7 @@
 
 ## 記事用の素材
 
-- `docs/screenshot-roulette.png` — ルーレット結果(🎉決定画面と履歴)
+- `docs/screenshot-roulette.png` — ルーレット結果(木札の決定画面と履歴)
 - `docs/screenshot-shindan.png` — 気分診断(3問と診断結果ベスト3)
 - `docs/screenshot-mine.png` — マイ料理の登録フォームと追加済み一覧
 - `docs/screenshot-detail.png` — レシピ詳細(材料・調味料・作り方)
